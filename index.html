@@ -1,0 +1,403 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Revolutions Jeopardy</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500;600;700&family=Public+Sans:wght@400;600;700&display=swap">
+<style>
+/* Layout: a projector-first board. Setup card centred; board of 5 category columns with a score strip beneath. Palette follows the unit slides: deep navy, cream, signal red. */
+:root{
+  --bg:#F5EFE3; --fg:#1B2433; --muted:#566074;
+  --panel:#FBF7EE; --line:#D8CDB4;
+  --board:#13233F; --tile:#1F3A6B; --tile-hover:#2B4D8C; --tile-fg:#F5EFE3; --gold:#EBCB7A;
+  --used:#E4DCC8; --accent:#B83227; --accent-fg:#FFFFFF;
+  --good:#2E7D4F; --bad:#B83227; --focus:#1F6FEB;
+  --display:'EB Garamond',Georgia,'Times New Roman',serif;
+  --body:'Public Sans',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0D1526; --fg:#EDE7D8; --muted:#A3ABBB;
+    --panel:#16223A; --line:#2A3955;
+    --board:#09101E; --tile:#1F3A6B; --tile-hover:#2F55A0; --tile-fg:#F5EFE3; --gold:#EBCB7A;
+    --used:#141E33; --accent:#E0584B; --accent-fg:#14090A;
+    --good:#58B67E; --bad:#E0584B; --focus:#7AB0FF; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0D1526; --fg:#EDE7D8; --muted:#A3ABBB;
+  --panel:#16223A; --line:#2A3955;
+  --board:#09101E; --tile:#1F3A6B; --tile-hover:#2F55A0; --tile-fg:#F5EFE3; --gold:#EBCB7A;
+  --used:#141E33; --accent:#E0584B; --accent-fg:#14090A;
+  --good:#58B67E; --bad:#E0584B; --focus:#7AB0FF; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.45}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.wrap{max-width:1280px;margin:0 auto;padding-block:20px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+h1,h2{font-family:var(--display);font-weight:700;letter-spacing:.01em;text-wrap:balance;margin:0}
+.btn{border:2px solid var(--fg);background:transparent;border-radius:8px;padding:8px 14px;font-weight:600;font-size:.9rem}
+.btn:hover{background:var(--fg);color:var(--bg)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-size:1.05rem;padding:12px 22px}
+.btn.primary:hover{filter:brightness(1.08);background:var(--accent);color:var(--accent-fg)}
+
+/* setup */
+#setup{max-width:640px;margin:6vh auto 0;display:grid;gap:22px}
+#setup h1{font-size:clamp(2.4rem,7vw,3.8rem);line-height:1.02}
+.kicker{font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--accent)}
+.sub{color:var(--muted);margin:6px 0 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;display:grid;gap:18px}
+.row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.row label{font-weight:700}
+.stepper{display:flex;align-items:center;gap:0;border:2px solid var(--fg);border-radius:10px;overflow:hidden}
+.stepper button{border:0;background:transparent;width:46px;height:44px;font-size:1.5rem;font-weight:700}
+.stepper button:hover{background:var(--fg);color:var(--bg)}
+.stepper output{min-width:52px;text-align:center;font-family:var(--display);font-size:1.9rem;font-weight:700;font-variant-numeric:tabular-nums}
+.names{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.names label{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:6px 10px;background:var(--bg)}
+.names input{flex:1;min-width:0;border:0;background:transparent;padding:6px 2px;font-weight:600}
+.dot{flex:none;width:14px;height:14px;border-radius:50%}
+.hint{font-size:.85rem;color:var(--muted);margin:0}
+
+/* game */
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.bar h2{font-size:clamp(1.5rem,3.4vw,2.1rem)}
+.bar .tools{display:flex;gap:8px;flex-wrap:wrap}
+.board{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:clamp(4px,.8vw,10px);background:var(--board);padding:clamp(6px,1vw,12px);border-radius:14px}
+.cat{display:flex;align-items:center;justify-content:center;text-align:center;min-height:clamp(54px,9vw,96px);padding:6px;color:var(--tile-fg);font-family:var(--display);font-weight:700;font-size:clamp(.8rem,2vw,1.6rem);line-height:1.1;text-wrap:balance;overflow-wrap:anywhere;border-bottom:3px solid var(--accent)}
+.tile{border:0;border-radius:8px;background:var(--tile);color:var(--gold);font-family:var(--display);font-weight:700;font-size:clamp(1.2rem,4.4vw,3.2rem);height:clamp(54px,10vw,112px);font-variant-numeric:tabular-nums}
+.tile:hover:not(.used){background:var(--tile-hover)}
+.tile.used{background:var(--used);color:transparent;cursor:default}
+.scores{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:16px}
+.team{border:2px solid var(--line);background:var(--panel);border-radius:12px;padding:10px 12px;display:grid;gap:6px;min-width:0}
+.team.turn{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.team .top{display:flex;align-items:center;gap:8px;min-width:0}
+.team .name{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;background:none;border:0;text-align:left;padding:0}
+.team .pick{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.team .score{font-family:var(--display);font-size:clamp(1.9rem,4vw,2.8rem);font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.team .score.neg{color:var(--bad)}
+.team .adj{display:flex;gap:6px}
+.team .adj button{flex:1;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 0;font-size:.8rem;font-weight:600}
+.team .adj button:hover{border-color:var(--fg)}
+
+/* clue overlay */
+#overlay{position:fixed;inset:0;z-index:50;background:rgba(6,10,20,.82);display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow:auto}
+.clue{width:min(1000px,100%);max-height:100%;overflow:auto;background:var(--panel);color:var(--fg);border-radius:16px;padding:clamp(18px,3.2vw,36px);display:grid;gap:clamp(14px,2vw,24px);border-top:8px solid var(--accent)}
+.clue .meta{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:.85rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.clue .q{font-family:var(--display);font-weight:600;font-size:clamp(1.6rem,4.4vw,3.2rem);line-height:1.15;margin:0;text-wrap:balance}
+.clue .ans{font-family:var(--display);font-weight:700;font-size:clamp(1.5rem,4vw,2.8rem);line-height:1.1;margin:0;color:var(--accent);padding-top:12px;border-top:2px dashed var(--line)}
+.award{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.award .t{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:8px 10px;min-width:0}
+.award .t span.n{flex:1;min-width:0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.award button{border:2px solid var(--line);background:transparent;border-radius:8px;min-width:64px;padding:6px 8px;font-weight:700;font-variant-numeric:tabular-nums}
+.award button.plus.on{background:var(--good);border-color:var(--good);color:#fff}
+.award button.minus.on{background:var(--bad);border-color:var(--bad);color:#fff}
+.award button:hover{border-color:var(--fg)}
+.clue .actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between}
+.clue .actions .grp{display:flex;gap:10px;flex-wrap:wrap}
+.label{font-size:.8rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+@media (prefers-reduced-motion: no-preference){
+  .tile,.btn{transition:background .15s}
+}
+</style>
+
+<main class="wrap">
+  <section id="setup" aria-labelledby="setupTitle">
+    <div>
+      <div class="kicker">Social Studies 9 · Unit 2</div>
+      <h1 id="setupTitle">Revolutions Jeopardy</h1>
+      <p class="sub">Pick the number of teams. Each team gets a score card and takes turns choosing a question.</p>
+    </div>
+    <div class="card">
+      <div class="row">
+        <label for="teamCount">Number of teams</label>
+        <div class="stepper" role="group" aria-label="Number of teams">
+          <button type="button" id="less" aria-label="Fewer teams">−</button>
+          <output id="teamCount" aria-live="polite">4</output>
+          <button type="button" id="more" aria-label="More teams">+</button>
+        </div>
+      </div>
+      <div>
+        <p class="label">Team names (optional)</p>
+        <div class="names" id="names"></div>
+      </div>
+      <div class="row"><button type="button" class="btn primary" id="start">Start game</button></div>
+      <p class="hint">Works with 2 to 8 teams. You can change the teams later without losing the board.</p>
+    </div>
+  </section>
+
+  <section id="game" hidden>
+    <div class="bar">
+      <h2>Revolutions Jeopardy</h2>
+      <div class="tools">
+        <button type="button" class="btn" id="full">Full screen</button>
+        <button type="button" class="btn" id="changeTeams">Change teams</button>
+        <button type="button" class="btn" id="reset">Reset game</button>
+      </div>
+    </div>
+    <div class="board" id="board"></div>
+    <div class="scores" id="scores"></div>
+  </section>
+</main>
+
+<div id="overlay" hidden>
+  <div class="clue" role="dialog" aria-modal="true" aria-labelledby="clueQ">
+    <div class="meta"><span id="clueCat"></span><span id="cluePts"></span></div>
+    <p class="q" id="clueQ"></p>
+    <p class="ans" id="clueAns" hidden></p>
+    <div>
+      <p class="label">Award points</p>
+      <div class="award" id="award"></div>
+    </div>
+    <div class="actions">
+      <div class="grp"><button type="button" class="btn" id="showAns">Show answer</button></div>
+      <div class="grp">
+        <button type="button" class="btn" id="cancelClue">Back to board</button>
+        <button type="button" class="btn primary" id="doneClue">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA = [
+  { name: "The Old Regime", qs: [
+    ["Into how many social classes, called estates, was France divided?", "Three (the Church, the nobility and everyone else)"],
+    ["Which estate was made up of the nobility and paid no taxes?", "The Second Estate"],
+    ["Which absolute ruler, known as the “Sun King,” built the huge palace at Versailles?", "Louis XIV"],
+    ["What is it called when a government spends more money than it takes in from taxes?", "A deficit"],
+    ["In 1789, the king called a rarely used assembly that had not met in about 150 years. What was it called?", "The Estates-General"]
+  ]},
+  { name: "The Revolution in France", qs: [
+    ["The Third Estate swore its famous oath in a court for which sport?", "Tennis"],
+    ["Which queen, the sister of the Austrian emperor, was seen as a wasteful spender?", "Marie Antoinette"],
+    ["In October 1789, a group of women attacked which palace and forced the royal family to move to Paris?", "Versailles"],
+    ["In June 1791, the royal family was caught trying to escape to which country?", "Austria"],
+    ["What were the nobles called who fled France and hoped foreign help would bring back the Old Regime?", "Émigrés"]
+  ]},
+  { name: "Terror and Napoleon", qs: [
+    ["What machine was used to execute thousands of people, including the king and queen?", "The guillotine"],
+    ["Which Jacobin leader was arrested and guillotined in July 1794, ending the Reign of Terror?", "Robespierre"],
+    ["Which popular general from Corsica overthrew the Directory in a coup d’état in 1799?", "Napoleon Bonaparte"],
+    ["Napoleon’s army was destroyed in 1812 while invading which huge country?", "Russia"],
+    ["The Napoleonic Code kept equality before the law, but which group of people had fewer rights?", "Women"]
+  ]},
+  { name: "Saint-Domingue", qs: [
+    ["What is the French colony of Saint-Domingue called today?", "Haiti"],
+    ["Saint-Domingue grew about 40% of Europe’s sugar and about 60% of which other crop?", "Coffee"],
+    ["What name was given to escaped slaves who built free communities in the mountains?", "Maroons"],
+    ["What were the rich white planters and officials who held the power in the colony called?", "The grands blancs"],
+    ["Makandal, a Vodou priest and maroon leader, was executed in 1758 after a failed plot to do what?", "Poison the planters"]
+  ]},
+  { name: "Haiti: Revolution and Aftermath", qs: [
+    ["At Bois Caïman in 1791, Boukman and Cécile Fatiman led a ceremony of which religion to signal the revolt?", "Vodou"],
+    ["What disease killed thousands of French soldiers in Saint-Domingue?", "Yellow fever"],
+    ["Which general defeated the French at Vertières and declared Haiti independent at Gonaïves?", "Dessalines"],
+    ["Which country banned trade with Haiti in 1806 because Southern slaveholders feared a revolt?", "The United States"],
+    ["In 1825, France demanded 150 million francs from Haiti. In what year did Haiti finish paying?", "1947"]
+  ]}
+];
+const POINTS = [100, 200, 300, 400, 500];
+const COLORS = ["#B83227", "#2B6CB0", "#2E7D4F", "#C9871A", "#7B4FA3", "#0E7C86", "#C2185B", "#5A6270"];
+
+const $ = id => document.getElementById(id);
+let names = ["Team 1", "Team 2", "Team 3", "Team 4"];
+let count = 4;
+let scores = [];
+let used = new Set();
+let turn = 0;
+let cur = null; // {c, r, deltas:[], tileEl}
+let resetTimer = null;
+
+/* setup */
+function renderNames() {
+  while (names.length < count) names.push("Team " + (names.length + 1));
+  const box = $("names");
+  box.textContent = "";
+  for (let i = 0; i < count; i++) {
+    const lab = document.createElement("label");
+    const dot = document.createElement("span");
+    dot.className = "dot"; dot.style.background = COLORS[i];
+    const inp = document.createElement("input");
+    inp.id = "teamName" + i; inp.type = "text"; inp.maxLength = 24;
+    inp.value = names[i]; inp.setAttribute("aria-label", "Name for team " + (i + 1));
+    inp.addEventListener("input", () => { names[i] = inp.value; });
+    lab.append(dot, inp);
+    box.append(lab);
+  }
+  $("teamCount").textContent = count;
+  $("less").disabled = count <= 2;
+  $("more").disabled = count >= 8;
+}
+$("less").onclick = () => { if (count > 2) { count--; renderNames(); } };
+$("more").onclick = () => { if (count < 8) { count++; renderNames(); } };
+
+function cleanName(i) { return (names[i] || "").trim() || "Team " + (i + 1); }
+
+$("start").onclick = () => {
+  const keep = scores.slice(0, count);
+  scores = Array.from({ length: count }, (_, i) => keep[i] || 0);
+  if (turn >= count) turn = 0;
+  $("setup").hidden = true;
+  $("game").hidden = false;
+  renderBoard();
+  renderScores();
+};
+$("changeTeams").onclick = () => {
+  $("game").hidden = true;
+  $("setup").hidden = false;
+  renderNames();
+};
+
+/* board */
+function renderBoard() {
+  const b = $("board");
+  b.textContent = "";
+  DATA.forEach(cat => {
+    const h = document.createElement("div");
+    h.className = "cat"; h.textContent = cat.name;
+    b.append(h);
+  });
+  for (let r = 0; r < 5; r++) {
+    for (let c = 0; c < DATA.length; c++) {
+      const t = document.createElement("button");
+      t.type = "button";
+      t.className = "tile";
+      const key = c + "-" + r;
+      t.dataset.key = key;
+      t.textContent = POINTS[r];
+      t.setAttribute("aria-label", DATA[c].name + " for " + POINTS[r] + " points");
+      if (used.has(key)) { t.classList.add("used"); t.disabled = true; t.textContent = ""; }
+      t.onclick = () => openClue(c, r, t);
+      b.append(t);
+    }
+  }
+}
+
+/* scores */
+function renderScores() {
+  const s = $("scores");
+  s.textContent = "";
+  for (let i = 0; i < count; i++) {
+    const d = document.createElement("div");
+    d.className = "team" + (i === turn ? " turn" : "");
+    const top = document.createElement("div"); top.className = "top";
+    const dot = document.createElement("span"); dot.className = "dot"; dot.style.background = COLORS[i];
+    const nm = document.createElement("button");
+    nm.type = "button"; nm.className = "name"; nm.textContent = cleanName(i);
+    nm.title = "Click to make this team the next to choose";
+    nm.onclick = () => { turn = i; renderScores(); };
+    top.append(dot, nm);
+    if (i === turn) { const p = document.createElement("span"); p.className = "pick"; p.textContent = "Picks"; top.append(p); }
+    const sc = document.createElement("div");
+    sc.className = "score" + (scores[i] < 0 ? " neg" : "");
+    sc.textContent = scores[i];
+    const adj = document.createElement("div"); adj.className = "adj";
+    [[-100, "−100"], [100, "+100"]].forEach(([v, lab]) => {
+      const bt = document.createElement("button");
+      bt.type = "button"; bt.textContent = lab;
+      bt.setAttribute("aria-label", lab + " for " + cleanName(i));
+      bt.onclick = () => { scores[i] += v; renderScores(); };
+      adj.append(bt);
+    });
+    d.append(top, sc, adj);
+    s.append(d);
+  }
+}
+
+/* clue */
+function openClue(c, r, tileEl) {
+  cur = { c, r, deltas: new Array(count).fill(0), tileEl };
+  $("clueCat").textContent = DATA[c].name;
+  $("cluePts").textContent = POINTS[r] + " points";
+  $("clueQ").textContent = DATA[c].qs[r][0];
+  $("clueAns").textContent = DATA[c].qs[r][1];
+  $("clueAns").hidden = true;
+  $("showAns").textContent = "Show answer";
+  renderAward();
+  $("overlay").hidden = false;
+  $("showAns").focus();
+}
+function renderAward() {
+  const box = $("award");
+  box.textContent = "";
+  const pts = POINTS[cur.r];
+  for (let i = 0; i < count; i++) {
+    const t = document.createElement("div"); t.className = "t";
+    const dot = document.createElement("span"); dot.className = "dot"; dot.style.background = COLORS[i];
+    const n = document.createElement("span"); n.className = "n"; n.textContent = cleanName(i);
+    const plus = document.createElement("button");
+    plus.type = "button"; plus.className = "plus" + (cur.deltas[i] > 0 ? " on" : "");
+    plus.textContent = "+" + pts;
+    plus.setAttribute("aria-pressed", cur.deltas[i] > 0);
+    plus.setAttribute("aria-label", "Add " + pts + " to " + cleanName(i));
+    plus.onclick = () => setDelta(i, cur.deltas[i] > 0 ? 0 : pts);
+    const minus = document.createElement("button");
+    minus.type = "button"; minus.className = "minus" + (cur.deltas[i] < 0 ? " on" : "");
+    minus.textContent = "−" + pts;
+    minus.setAttribute("aria-pressed", cur.deltas[i] < 0);
+    minus.setAttribute("aria-label", "Subtract " + pts + " from " + cleanName(i));
+    minus.onclick = () => setDelta(i, cur.deltas[i] < 0 ? 0 : -pts);
+    t.append(dot, n, plus, minus);
+    box.append(t);
+  }
+}
+function setDelta(i, v) {
+  scores[i] += v - cur.deltas[i];
+  cur.deltas[i] = v;
+  renderAward();
+  renderScores();
+}
+$("showAns").onclick = () => {
+  const a = $("clueAns");
+  a.hidden = !a.hidden;
+  $("showAns").textContent = a.hidden ? "Show answer" : "Hide answer";
+};
+function closeClue(markUsed) {
+  if (!cur) return;
+  const key = cur.c + "-" + cur.r;
+  if (markUsed) {
+    used.add(key);
+    const winners = cur.deltas.map((d, i) => d > 0 ? i : -1).filter(i => i >= 0);
+    turn = winners.length === 1 ? winners[0] : (turn + 1) % count;
+  } else {
+    cur.deltas.forEach((d, i) => { scores[i] -= d; });
+  }
+  cur = null;
+  $("overlay").hidden = true;
+  renderBoard();
+  renderScores();
+}
+$("doneClue").onclick = () => closeClue(true);
+$("cancelClue").onclick = () => closeClue(false);
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !$("overlay").hidden) closeClue(false);
+});
+
+/* tools */
+$("reset").onclick = () => {
+  const b = $("reset");
+  if (b.dataset.armed) {
+    clearTimeout(resetTimer);
+    delete b.dataset.armed;
+    b.textContent = "Reset game";
+    used = new Set(); scores = new Array(count).fill(0); turn = 0;
+    renderBoard(); renderScores();
+  } else {
+    b.dataset.armed = "1";
+    b.textContent = "Click again to reset";
+    resetTimer = setTimeout(() => { delete b.dataset.armed; b.textContent = "Reset game"; }, 3000);
+  }
+};
+$("full").onclick = () => {
+  try {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen().catch(() => {});
+  } catch (e) {}
+};
+
+renderNames();
+</script>
+
+</body></html>
